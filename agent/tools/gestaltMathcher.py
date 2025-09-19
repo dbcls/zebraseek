@@ -4,6 +4,8 @@ import json
 import os
 from dotenv import load_dotenv
 
+MAX_DISTANCE = 1.3
+
 def call_gestalt_matcher_api(image_path: str, depth: int):
     """
     画像ファイルのパスを受け取り、GestaltMatcher APIを叩いて
@@ -40,4 +42,14 @@ def call_gestalt_matcher_api(image_path: str, depth: int):
     response.raise_for_status()
     result = response.json()
     syndromes = result.get("suggested_syndromes_list", [])
-    return syndromes[:depth + 4]
+    # Return only the top depth + 4 items
+    syndromes = syndromes[:depth + 4]
+    # Remove distance and gestalt_score and replace with a single score value
+    # New score is normalized to 0-1 range rather than 0-1.3 distance
+
+    for syndrome in syndromes:
+        syndrome["score"] = (MAX_DISTANCE - syndrome["distance"]) / MAX_DISTANCE
+        del syndrome["distance"]
+        del syndrome["gestalt_score"]
+
+    return syndromes
